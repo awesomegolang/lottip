@@ -1,0 +1,27 @@
+host_name: api.fedotov.dev.jivosite.com
+
+gui:
+  host: 127.0.0.1
+  port: 9090
+
+applications:
+  api:
+    driver: mysql
+    mysql:
+      host: 127.0.0.1
+      port: 3306
+    proxy:
+      host: 127.0.0.1
+      port: 4041
+
+  web20:
+    proxy:
+      host: 127.0.0.1
+      port: 4042
+    backends:
+      mysql:
+        host: 127.0.0.1
+        port: 3306
+      redis:
+        host: 127.0.0.1
+        port: 3306

@@ -1,42 +1,42 @@
 package main
 
 import (
-	"flag"
-	"fmt"
-	"time"
-
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/orderbynull/lottip/chat"
+	"time"
 )
 
-var (
-	proxyAddr  = flag.String("proxy", "127.0.0.1:4041", "Proxy <host>:<port>")
-	mysqlAddr  = flag.String("mysql", "127.0.0.1:3306", "MySQL <host>:<port>")
-	guiAddr    = flag.String("gui", "127.0.0.1:9999", "Web UI <host>:<port>")
-	useLocalUI = flag.Bool("use-local", false, "Use local UI instead of embed")
-	mysqlDsn   = flag.String("mysql-dsn", "", "MySQL DSN for query execution capabilities")
-)
+const mysqlAddr = "127.0.0.1:3306"
+const proxyAddr = "127.0.0.1:4041"
 
-func appReadyInfo(appReadyChan chan bool) {
-	<-appReadyChan
-	time.Sleep(1 * time.Second)
-	fmt.Printf("Forwarding queries from `%s` to `%s` \n", *proxyAddr, *mysqlAddr)
-	fmt.Printf("Web gui available at `http://%s` \n", *guiAddr)
-}
+
 
 func main() {
-	flag.Parse()
+	db, err := gorm.Open("sqlite3", "test.db")
+	if err != nil {
+		panic("failed to connect database")
+	}
+	defer db.Close()
+
+	db.AutoMigrate(&MySql{})
 
 	cmdChan := make(chan chat.Cmd)
 	cmdResultChan := make(chan chat.CmdResult)
 	connStateChan := make(chan chat.ConnState)
 	appReadyChan := make(chan bool)
 
-	hub := chat.NewHub(cmdChan, cmdResultChan, connStateChan)
+	go func() {
+		for {
+			select {
+			case cmd := <-cmdChan:
+				db.Create(&MySql{CmdId: cmd.CmdId, ConnId: cmd.ConnId, Query: cmd.Query, Done: false, Duration: time.Second})
+			case result := <-cmdResultChan:
+				db.Model(&MySql{}).Where("cmd_id = ? AND conn_id = ?", result.CmdId, result.ConnId).Updates(map[string]interface{}{"error": result.Error, "done": true})
+			case <-connStateChan:
+			}
+		}
+	}()
 
-	go hub.Run()
-	go runHttpServer(hub)
-	go appReadyInfo(appReadyChan)
-
-	p := MySQLProxyServer{cmdChan, cmdResultChan, connStateChan, appReadyChan, *mysqlAddr, *proxyAddr}
-	p.run()
+	(&MySQLProxyServer{cmdChan, cmdResultChan, connStateChan, appReadyChan, mysqlAddr, proxyAddr}).run()
 }

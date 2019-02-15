@@ -11,8 +11,8 @@ import (
 )
 
 type RequestPacketParser struct {
-	connId        string
-	queryId       *int
+	connId        uint
+	queryId       *uint
 	queryChan     chan chat.Cmd
 	connStateChan chan chat.ConnState
 	timer         *time.Time
@@ -27,7 +27,7 @@ func (pp *RequestPacketParser) Write(p []byte) (n int, err error) {
 	case protocol.ComQuery:
 		decoded, err := protocol.DecodeQueryRequest(p)
 		if err == nil {
-			pp.queryChan <- chat.Cmd{pp.connId, *pp.queryId, "", decoded.Query, nil, false}
+			pp.queryChan <- chat.Cmd{pp.connId, *pp.queryId, false, "", decoded.Query, nil}
 		}
 	case protocol.ComQuit:
 		pp.connStateChan <- chat.ConnState{pp.connId, protocol.ConnStateFinished}
@@ -37,8 +37,8 @@ func (pp *RequestPacketParser) Write(p []byte) (n int, err error) {
 }
 
 type ResponsePacketParser struct {
-	connId          string
-	queryId         *int
+	connId          uint
+	queryId         *uint
 	queryResultChan chan chat.CmdResult
 	timer           *time.Time
 }
@@ -48,8 +48,8 @@ func (pp *ResponsePacketParser) Write(p []byte) (n int, err error) {
 
 	switch protocol.GetPacketType(p) {
 	case protocol.ResponseErr:
-		decoded, _ := protocol.DecodeErrResponse(p)
-		pp.queryResultChan <- chat.CmdResult{pp.connId, *pp.queryId, protocol.ResponseErr, decoded, duration}
+		errorMsg, _ := protocol.DecodeErrResponse(p)
+		pp.queryResultChan <- chat.CmdResult{pp.connId, *pp.queryId, protocol.ResponseErr, errorMsg, duration}
 	default:
 		pp.queryResultChan <- chat.CmdResult{pp.connId, *pp.queryId, protocol.ResponseOk, "", duration}
 	}
@@ -76,10 +76,12 @@ func (p *MySQLProxyServer) run() {
 	}
 	defer listener.Close()
 
-	go func() {
-		p.appReadyChan <- true
-		close(p.appReadyChan)
-	}()
+	//go func() {
+	//	p.appReadyChan <- true
+	//	close(p.appReadyChan)
+	//}()
+
+	var connId uint
 
 	for {
 		client, err := listener.Accept()
@@ -87,12 +89,13 @@ func (p *MySQLProxyServer) run() {
 			log.Print(err.Error())
 		}
 
-		go p.handleConnection(client)
+		connId++
+		go p.handleConnection(client, connId)
 	}
 }
 
 // handleConnection ...
-func (p *MySQLProxyServer) handleConnection(client net.Conn) {
+func (p *MySQLProxyServer) handleConnection(client net.Conn, connId uint) {
 	defer client.Close()
 
 	// New connection to MySQL is made per each incoming TCP request to MySQLProxyServer server.
@@ -103,11 +106,9 @@ func (p *MySQLProxyServer) handleConnection(client net.Conn) {
 	}
 	defer server.Close()
 
-	connId := fmt.Sprintf("%s => %s", client.RemoteAddr().String(), server.RemoteAddr().String())
-
 	defer func() { p.connStateChan <- chat.ConnState{connId, protocol.ConnStateFinished} }()
 
-	var queryId int
+	var queryId uint
 	var timer time.Time
 
 	// Copy bytes from client to server and requestParser
