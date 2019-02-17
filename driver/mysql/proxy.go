@@ -108,6 +108,8 @@ func (p *ProxyServer) Run() {
 
 // handleConnection ...
 func (p *ProxyServer) handleConnection(client net.Conn, connId uint) {
+	p.Connections <- Connection{connId, connStateStarted}
+
 	defer client.Close()
 
 	// New connection to MySQL is made per each incoming TCP request to ProxyServer server.

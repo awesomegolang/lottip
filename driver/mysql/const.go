@@ -17,7 +17,7 @@ const (
 	responseResultSet = 0xbb
 
 	// MySQL connection state constants
-	ConnStateStarted  = 0xf4
+	connStateStarted  = 0xf4
 	connStateFinished = 0xf5
 
 	// Digits after comma
