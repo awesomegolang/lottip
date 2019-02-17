@@ -30,8 +30,9 @@ func (pp *RequestPacketParser) Write(p []byte) (n int, err error) {
 				Executable: false,
 			}
 		}
-		//case comQuit:
-		//	pp.connStateChan <- Connection{pp.connId, connStateFinished}
+	case comQuit:
+		println("CLOSED")
+		//pp.connStateChan <- Connection{pp.connId, connStateFinished}
 	}
 
 	return len(p), nil
@@ -42,11 +43,11 @@ type ResponsePacketParser struct {
 	cmdId     *uint
 	queryChan chan Command
 	timer     *time.Time
-	commandsMap  map[uint]*Command
+	toRename  map[uint]*Command
 }
 
 func (pp *ResponsePacketParser) Write(p []byte) (n int, err error) {
-	if command, ok := pp.commandsMap[*pp.cmdId]; ok {
+	if command, ok := pp.toRename[*pp.cmdId]; ok {
 		command.Duration = time.Since(*pp.timer)
 
 		if packetType(p) == responseErr {
@@ -59,7 +60,7 @@ func (pp *ResponsePacketParser) Write(p []byte) (n int, err error) {
 		}
 
 		pp.queryChan <- *command
-		delete(pp.commandsMap, *pp.cmdId)
+		delete(pp.toRename, *pp.cmdId)
 	}
 
 	return len(p), nil

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"github.com/orderbynull/lottip/driver/mysql"
 	"net/http"
@@ -26,10 +25,12 @@ func main() {
 	go func() {
 		for {
 			select {
-			case cmd := <-proxy.Commands:
-				jsonData, _ := json.Marshal(cmd)
-				go postData(mysqlRoute(), jsonData)
-			case <-proxy.Connections:
+			case <-proxy.Commands:
+				//jsonData, _ := json.Marshal(cmd)
+				//println("Command ->", jsonData)
+				//go postData(mysqlRoute(), jsonData)
+			case conn := <-proxy.Connections:
+				println("Connection ->", conn.State)
 			}
 		}
 	}()
