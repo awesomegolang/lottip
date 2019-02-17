@@ -1,4 +1,4 @@
-package protocol
+package mysql
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ var errInvalidPacketLength = errors.New("protocol: Invalid packet length")
 var errInvalidPacketType = errors.New("protocol: Invalid packet type")
 var errFieldTypeNotImplementedYet = errors.New("protocol: Required field type not implemented yet")
 
-func GetPacketType(packet []byte) byte {
+func packetType(packet []byte) byte {
 	return packet[4]
 }
 
@@ -33,7 +33,7 @@ type ErrResponse struct {
 //		string<5> SqlState
 // }
 // string<EOF> ErrorMessage
-func DecodeErrResponse(packet []byte) (string, error) {
+func decodeErrResponse(packet []byte) (string, error) {
 	if err := checkPacketLength(8, packet); err != nil {
 		return "", err
 	}
@@ -257,7 +257,7 @@ type QueryRequest struct {
 	Query string // SQL query value
 }
 
-// DecodeQueryRequest decodes COM_QUERY and COM_STMT_PREPARE requests from client.
+// decodeQueryRequest decodes COM_QUERY and COM_STMT_PREPARE requests from client.
 // Basic packet structure shown below.
 // See https://mariadb.com/kb/en/mariadb/com_query/ and https://mariadb.com/kb/en/mariadb/com_stmt_prepare/
 //
@@ -265,7 +265,7 @@ type QueryRequest struct {
 // int<1> PacketNumber
 // int<1> Command COM_QUERY (0x03) or COM_STMT_PREPARE (0x16)
 // string<EOF> SQLStatement
-func DecodeQueryRequest(packet []byte) (*QueryRequest, error) {
+func decodeQueryRequest(packet []byte) (*QueryRequest, error) {
 
 	// Min packet length = header(4 bytes) + command(1 byte) + SQLStatement(at least 1 byte)
 	if len(packet) < 6 {
@@ -273,7 +273,7 @@ func DecodeQueryRequest(packet []byte) (*QueryRequest, error) {
 	}
 
 	// Fifth byte is command
-	if packet[4] != ComQuery && packet[4] != ComStmtPrepare {
+	if packet[4] != comQuery && packet[4] != comStmtPrepare {
 		return nil, errInvalidPacketType
 	}
 
@@ -367,7 +367,7 @@ func DecodeComStmtExecuteRequest(packet []byte, paramsCount uint16) (*ComStmtExe
 	}
 
 	// Fifth byte is command
-	if packet[4] != ComStmtExecute {
+	if packet[4] != comStmtExecute {
 		return nil, errInvalidPacketType
 	}
 

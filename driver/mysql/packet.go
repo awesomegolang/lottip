@@ -1,4 +1,4 @@
-package protocol
+package mysql
 
 import (
 	"bytes"
@@ -97,10 +97,10 @@ func ReadPrepareResponse(conn net.Conn) ([]byte, byte, error) {
 			data = append(data, pkt...)
 		}
 
-		return data, ResponseOk, nil
+		return data, responseOk, nil
 
-	case ResponseErr:
-		return pkt, ResponseErr, nil
+	case responseErr:
+		return pkt, responseErr, nil
 	}
 
 	return nil, 0, nil
@@ -122,11 +122,11 @@ func ReadResponse(conn net.Conn, deprecateEof bool) ([]byte, byte, error) {
 	}
 
 	switch pkt[4] {
-	case ResponseOk:
-		return pkt, ResponseOk, nil
+	case responseOk:
+		return pkt, responseOk, nil
 
-	case ResponseErr:
-		return pkt, ResponseErr, nil
+	case responseErr:
+		return pkt, responseErr, nil
 
 	case responseLocalinfile:
 	}
@@ -164,7 +164,7 @@ func ReadResponse(conn net.Conn, deprecateEof bool) ([]byte, byte, error) {
 		}
 	}
 
-	return data, responseResultset, nil
+	return data, responseResultSet, nil
 }
 
 // ReadPacket ...

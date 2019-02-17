@@ -1,4 +1,4 @@
-package protocol
+package mysql
 
 import (
 	"bytes"
@@ -308,7 +308,7 @@ func TestDecodeQueryRequest(t *testing.T) {
 	}
 
 	for _, asserted := range testData {
-		decoded, err := DecodeQueryRequest(asserted.Packet)
+		decoded, err := decodeQueryRequest(asserted.Packet)
 
 		if err != nil {
 			assert.Equal(t, asserted.Error, err)

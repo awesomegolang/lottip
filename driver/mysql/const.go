@@ -1,10 +1,10 @@
-package protocol
+package mysql
 
 const (
 	responseEof         = 0xfe
-	ResponseOk          = 0x00
+	responseOk          = 0x00
 	responsePrepareOk   = 0x00
-	ResponseErr         = 0xff
+	responseErr         = 0xff
 	responseLocalinfile = 0xfb
 
 	// MySQL field types constants
@@ -14,21 +14,21 @@ const (
 
 	// There is no code for Resultset in MySQL internal protocol
 	// so it's defined here for convenience
-	responseResultset = 0xbb
+	responseResultSet = 0xbb
 
 	// MySQL connection state constants
 	ConnStateStarted  = 0xf4
-	ConnStateFinished = 0xf5
+	connStateFinished = 0xf5
 
 	// Digits after comma
 	doubleDecodePrecision = 6
 )
 
 const (
-	ComQuit byte = iota + 1
+	comQuit byte = iota + 1
 	comInitDB
-	ComQuery
-	ComFieldList
+	comQuery
+	comFieldList
 	comCreateDB
 	comDropDB
 	comRefresh
@@ -46,8 +46,8 @@ const (
 	comTableDump
 	comConnectOut
 	comRegisterSlave
-	ComStmtPrepare
-	ComStmtExecute
+	comStmtPrepare
+	comStmtExecute
 	comStmtSendLongData
 	ComStmtClose
 	comStmtReset
