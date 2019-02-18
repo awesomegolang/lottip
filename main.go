@@ -22,9 +22,9 @@ func main() {
 				println("CMD -> ", string(jsonData))
 				//go postData(apiUrl(mysqlCmdPath), jsonData)
 
-			case conn := <-proxy.Connections:
-				jsonData, _ := json.Marshal(conn)
-				println("CONN -> ", string(jsonData))
+			case <-proxy.Connections:
+				//jsonData, _ := json.Marshal(conn)
+				//println("CONN -> ", string(jsonData))
 				//go postData(apiUrl(mysqlConnPath), jsonData)
 			}
 		}

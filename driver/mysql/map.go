@@ -12,6 +12,7 @@ type Command struct {
 	Database   string        `json:"database"`
 	Executable bool          `json:"executable"`
 	Parameters []string      `json:"parameters"`
+	StartedAt  time.Time     `json:"started_at"`
 	Duration   time.Duration `json:"duration"`
 }
 

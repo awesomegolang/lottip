@@ -1,27 +1,22 @@
 host_name: api.fedotov.dev.jivosite.com
+api_url: https://lottip.orderbynull.me
 
-gui:
-  host: 127.0.0.1
-  port: 9090
+services:
+  mysql:
+    host: 127.0.0.1:3306
+    proxy: 127.0.0.1:4040
+    tags: [Api, Web20, Chatserver]
 
-applications:
-  api:
-    driver: mysql
-    mysql:
-      host: 127.0.0.1
-      port: 3306
-    proxy:
-      host: 127.0.0.1
-      port: 4041
+  postgresql:
+    host: 127.0.0.1:5432
+    proxy: 127.0.0.1:4041
 
-  web20:
-    proxy:
-      host: 127.0.0.1
-      port: 4042
-    backends:
-      mysql:
-        host: 127.0.0.1
-        port: 3306
-      redis:
-        host: 127.0.0.1
-        port: 3306
+  redis:
+    host: 127.0.0.1:6379
+    proxy: 127.0.0.1:4042
+    tags: [Web20]
+
+  rabbitmq:
+    host: 127.0.0.1:5672
+    proxy: 127.0.0.1:4043
+    tags: [Api, Chatserver]

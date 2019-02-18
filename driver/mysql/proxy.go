@@ -7,48 +7,42 @@ import (
 	"time"
 )
 
-type RequestPacketParser struct {
+type requestWriter struct {
 	connId      uint
-	queryId     *uint
-	timer       *time.Time
+	cmdId       *uint
 	commandsMap map[uint]*Command
 }
 
-func (pp *RequestPacketParser) Write(p []byte) (n int, err error) {
-	*pp.queryId++
-	*pp.timer = time.Now()
+func (pp *requestWriter) Write(p []byte) (n int, err error) {
+	*pp.cmdId++
 
 	switch packetType(p) {
 	case comStmtPrepare:
 	case comQuery:
 		decoded, err := decodeQueryRequest(p)
 		if err == nil {
-			pp.commandsMap[*pp.queryId] = &Command{
+			pp.commandsMap[*pp.cmdId] = &Command{
 				ConnId:     pp.connId,
-				CmdId:      *pp.queryId,
+				CmdId:      *pp.cmdId,
 				Query:      decoded.Query,
 				Executable: false,
+				StartedAt: time.Now(),
 			}
 		}
-	case comQuit:
-		println("CLOSED")
-		//pp.connStateChan <- Connection{pp.connId, connStateFinished}
 	}
 
 	return len(p), nil
 }
 
-type ResponsePacketParser struct {
-	connId    uint
-	cmdId     *uint
-	queryChan chan Command
-	timer     *time.Time
-	toRename  map[uint]*Command
+type responseWriter struct {
+	cmdId       *uint
+	queryChan   chan Command
+	commandsMap map[uint]*Command
 }
 
-func (pp *ResponsePacketParser) Write(p []byte) (n int, err error) {
-	if command, ok := pp.toRename[*pp.cmdId]; ok {
-		command.Duration = time.Since(*pp.timer)
+func (pp *responseWriter) Write(p []byte) (n int, err error) {
+	if command, ok := pp.commandsMap[*pp.cmdId]; ok {
+		command.Duration = time.Since(command.StartedAt)
 
 		if packetType(p) == responseErr {
 			errorMsg, _ := decodeErrResponse(p)
@@ -60,7 +54,7 @@ func (pp *ResponsePacketParser) Write(p []byte) (n int, err error) {
 		}
 
 		pp.queryChan <- *command
-		delete(pp.toRename, *pp.cmdId)
+		delete(pp.commandsMap, *pp.cmdId)
 	}
 
 	return len(p), nil
@@ -108,8 +102,6 @@ func (p *ProxyServer) Run() {
 
 // handleConnection ...
 func (p *ProxyServer) handleConnection(client net.Conn, connId uint) {
-	p.Connections <- Connection{connId, connStateStarted}
-
 	defer client.Close()
 
 	// New connection to MySQL is made per each incoming TCP request to ProxyServer server.
@@ -120,15 +112,15 @@ func (p *ProxyServer) handleConnection(client net.Conn, connId uint) {
 	}
 	defer server.Close()
 
+	p.Connections <- Connection{connId, connStateStarted}
 	defer func() { p.Connections <- Connection{connId, connStateFinished} }()
 
-	var queryId uint
-	var timer time.Time
+	var cmdId uint
 	var commandsMap = make(map[uint]*Command)
 
 	// Copy bytes from client to server and requestParser
-	go io.Copy(io.MultiWriter(server, &RequestPacketParser{connId, &queryId, &timer, commandsMap}), client)
+	go io.Copy(io.MultiWriter(server, &requestWriter{connId, &cmdId, commandsMap}), client)
 
 	// Copy bytes from server to client and responseParser
-	io.Copy(io.MultiWriter(client, &ResponsePacketParser{connId, &queryId, p.Commands, &timer, commandsMap}), server)
+	io.Copy(io.MultiWriter(client, &responseWriter{&cmdId, p.Commands, commandsMap}), server)
 }
