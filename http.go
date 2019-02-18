@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func apiUrl(path string) string {
+func apiUrl(apiHost string, path string) string {
 	return fmt.Sprintf("%s%s", apiHost, path)
 }
 

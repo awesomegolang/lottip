@@ -1,22 +1,8 @@
 host_name: api.fedotov.dev.jivosite.com
-api_url: https://lottip.orderbynull.me
+api_url: https://b7e5d9bd-8666-46d3-99f0-215fbc2cf36d.mock.pstmn.io
 
-services:
+proxies:
   mysql:
-    host: 127.0.0.1:3306
-    proxy: 127.0.0.1:4040
+    in: 127.0.0.1:4041
+    out: 127.0.0.1:3306
     tags: [Api, Web20, Chatserver]
-
-  postgresql:
-    host: 127.0.0.1:5432
-    proxy: 127.0.0.1:4041
-
-  redis:
-    host: 127.0.0.1:6379
-    proxy: 127.0.0.1:4042
-    tags: [Web20]
-
-  rabbitmq:
-    host: 127.0.0.1:5672
-    proxy: 127.0.0.1:4043
-    tags: [Api, Chatserver]
