@@ -1,8 +1,14 @@
 host_name: api.fedotov.dev.jivosite.com
 api_url: https://b7e5d9bd-8666-46d3-99f0-215fbc2cf36d.mock.pstmn.io
 
-proxies:
+enabled: [mysql, redis]
+
+drivers:
   mysql:
-    in: 127.0.0.1:4041
-    out: 127.0.0.1:3306
+    listen: 127.0.0.1:4041
+    target: 127.0.0.1:3306
     tags: [Api, Web20, Chatserver]
+
+  redis:
+    target: 127.0.0.1:32768
+    tags: [Api, Chatserver]
