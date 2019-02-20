@@ -30,7 +30,7 @@ func main() {
 					}
 				}
 			}()
-			
+
 		case RedisConfig:
 			monitor := redis.NewMonitor(cfg.Target)
 			go monitor.Run()
